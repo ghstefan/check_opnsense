@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # ------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ class NagiosState(Enum):
 
 
 class CheckOPNsense:
-    VERSION = '0.1.0'
+    VERSION = '0.2.0'
     API_URL = 'https://{}:{}/api/{}'
 
     options = {}
@@ -82,8 +82,8 @@ class CheckOPNsense:
             if method == 'post':
                 response = requests.post(
                     url,
-                    verify=not self.options.api_insecure,
                     auth=(self.options.api_key, self.options.api_secret),
+                    verify=self.options.request_verify,
                     data=kwargs.get('data', None),
                     timeout=5
                 )
@@ -91,7 +91,7 @@ class CheckOPNsense:
                 response = requests.get(
                     url,
                     auth=(self.options.api_key, self.options.api_secret),
-                    verify=not self.options.api_insecure,
+                    verify=self.options.request_verify,
                     params=kwargs.get('params', None)
                 )
             else:
@@ -139,8 +139,10 @@ class CheckOPNsense:
                               help="API key (See OPNsense user manager)")
         api_opts.add_argument("--api-secret", dest='api_secret', required=True,
                               help="API key (See OPNsense user manager)")
+
         api_opts.add_argument("-k", "--insecure", dest='api_insecure', action='store_true', default=False,
                               help="Don't verify HTTPS certificate")
+        api_opts.add_argument("--ssl-ca", dest='ssl_ca', help="Define a ssl ca")
 
         check_opts = p.add_argument_group('Check Options')
 
@@ -154,6 +156,13 @@ class CheckOPNsense:
                                 help='Critical treshold for check value')
 
         options = p.parse_args()
+
+        # now verify that we have a valid option for the ssl request
+        #
+        options.request_verify = options.api_insecure
+        if options.ssl_ca:
+            options.request_verify = options.ssl_ca
+
 
         self.options = options
 
